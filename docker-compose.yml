@@ -1,0 +1,150 @@
+version: '3.9'
+
+services:
+  # MongoDB for BookingService
+  mongo-booking:
+    image: mongo:latest
+    container_name: mongo-booking
+    ports:
+      - "27020:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  # MongoDB for EventService
+  mongo-event:
+    image: mongo:latest
+    container_name: mongo-event
+    ports:
+      - "27021:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  # MongoDB for ApprovalService
+  mongo-approval:
+    image: mongo:latest
+    container_name: mongo-approval
+    ports:
+      - "27022:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  # PostgreSQL for RoomService
+  postgres-room:
+    image: postgres:latest
+    container_name: postgres-room
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=room-service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+
+  # PostgreSQL for UserService
+  postgres-user:
+    image: postgres:latest
+    container_name: postgres-user
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=user-service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+
+  # BookingService
+  booking-service:
+    build:
+      context: ./booking-service
+    ports:
+      - "8090:8090"
+    environment:
+      - MONGO_DB_USERNAME=admin
+      - MONGO_DB_PWD=password
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongo-booking:27020/booking-service
+    depends_on:
+      - mongo-booking
+
+  # RoomService
+  room-service:
+    build:
+      context: ./room-service
+    ports:
+      - "8093:8093"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-room:5434/room-service
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password
+    depends_on:
+      - postgres-room
+
+  # EventService
+  event-service:
+    build:
+      context: ./event-service
+    ports:
+      - "8092:8092"
+    environment:
+      - MONGO_DB_USERNAME=admin
+      - MONGO_DB_PWD=password
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongo-event:27021/event-service
+    depends_on:
+      - mongo-event
+
+  # UserService
+  user-service:
+    build:
+      context: ./user-service
+    ports:
+      - "8094:8094"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-user:5435/user-service
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=password
+    depends_on:
+      - postgres-user
+
+  # ApprovalService
+  approval-service:
+    build:
+      context: ./approval-service
+    ports:
+      - "8091:8091"
+    environment:
+      - MONGO_DB_USERNAME=admin
+      - MONGO_DB_PWD=password
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongo-approval:27022/approval-service
+    depends_on:
+      - mongo-approval
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@domain.ca
+      - PGADMIN_DEFAULT_PASSWORD=password
+    ports:
+      - "8891:80"
+    depends_on:
+      - postgres-room
+      - postgres-user
+
+    # Mongo Express for MongoDB management
+  mongo-express:
+      image: mongo-express:latest
+      container_name: mongo-express
+      environment:
+        - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+        - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+        - ME_CONFIG_MONGODB_SERVER=mongo-booking
+      ports:
+        - "8081:8081"
+      depends_on:
+        - mongo-booking
+        - mongo-event
+        - mongo-approval
+
+
+
