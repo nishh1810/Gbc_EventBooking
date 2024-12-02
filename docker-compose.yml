@@ -128,7 +128,6 @@ services:
       - boot
 
    #EventService
-# # EventService
   event-service:
     image: event-service
     ports:
@@ -202,6 +201,60 @@ services:
         - mongo-booking
         - mongo-approval
         - mongo-event
+      networks:
+        - boot
+
+  api-gateway-eventbooking:
+    image: api-gateway-eventbooking
+    ports:
+      - "8011:8011"
+    build:
+      context: ./api-gateway
+      dockerfile: ./Dockerfile
+    container_name: api-gateway-eventbooking
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - boot
+
+  keycloak-eventbooking:
+    container_name: keycloak-eventbooking
+    hostname: keycloak
+    image: quay.io/keycloak/keycloak:24.0.1
+    command: [ "start-dev","--import-realm" ]
+    environment:
+      DB_VENDOR: postgres
+      DB_ADDR: postgres-keycloak-eventbooking
+      DB_DATABASE: keycloak-eventbooking
+      DB_USER: admin
+      DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+      ROOT_LOGLEVEL: DEBUG
+      JBOSS_LOG_MANAGER_ROOT_LOGGER: DEBUG,stdout,FILE
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./realms/:/opt/keycloak/data/import
+    depends_on:
+      - postgres-keycloak-eventbooking
+    networks:
+      - boot
+
+  postgres-keycloak-eventbooking:
+    image: postgres
+    ports:
+      - "5414:5432"
+    container_name: postgres-keycloak-eventbooking
+    environment:
+      - POSTGRES_DB=keycloak-eventbooking
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ./data/postgres/keycloak:/var/lib/postgresql/data
+    networks:
+      - boot
+
 
 volumes:
   mongo-event:
@@ -213,6 +266,8 @@ volumes:
   posgres-user:
     driver: local
   posgres-room:
+    driver: local
+  postgres-keycloak-eventbooking:
     driver: local
 
 networks:
