@@ -13,7 +13,6 @@ FROM openjdk:22-jdk
 RUN mkdir /app
 
 COPY --from=builder /home/gradle/src/build/libs/*.jar /app/booking-service.jar
-COPY --from=builder /home/gradle/src/shared-schema/build/libs/*.jar /app/shared-schema.jar
 
 
 ENV MONGO_DB_USERNAME=admin \
