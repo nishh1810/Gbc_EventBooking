@@ -2,6 +2,7 @@ package ca.gbc.bookingservice.service;
 
 import ca.gbc.bookingservice.dto.BookingRequest;
 import ca.gbc.bookingservice.dto.BookingResponse;
+import ca.gbc.bookingservice.event.BookingEvent;
 import ca.gbc.bookingservice.model.Booking;
 import ca.gbc.bookingservice.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +11,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.kafka.core.KafkaTemplate;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final MongoTemplate mongoTemplate;
+    private final KafkaTemplate<String, BookingEvent> kafkaTemplate;
 
     @Override
     public BookingResponse createBooking(BookingRequest bookingRequest) {
@@ -39,6 +41,10 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(newBooking);
         log.info("Booking {} is saved", newBooking.getId());
 
+        BookingEvent bookingEvent= new BookingEvent(newBooking.getId(),bookingRequest.useremail(),newBooking.getRoomId()
+        ,newBooking.getStartTime().toString());
+        kafkaTemplate.send("booking-done", bookingEvent);
+
         // Return a response containing booking details
         return new BookingResponse(
                 newBooking.getId(),
@@ -47,6 +53,7 @@ public class BookingServiceImpl implements BookingService {
                 newBooking.getStartTime(),
                 newBooking.getEndTime()
         );
+
     }
 
     @Override

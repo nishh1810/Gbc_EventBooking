@@ -255,6 +255,79 @@ services:
     networks:
       - boot
 
+  zookeeper:
+    container_name: zookeeper
+    hostname: zookeeper
+    image: confluentinc/cp-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - boot
+
+  broker:
+    container_name: broker
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      #wxternal connections to broker outside docker use 9092 and host.docker.internal
+      - "9092:9092"
+      #internal connections(inside docker) and container host name broker
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092 , PLAINTEXT_HOST://host.docker.internal:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - boot
+
+  kafka_ui:
+    container_name: kafka_ui
+    image: provectuslabs/kafka-ui
+    ports:
+      - "8015:8080"
+    environment:
+      KAFKA_CLUSTER_NAME: local
+      KAFKA_CLUSTER_BOOTSTRAPSERVER: broker:9092
+      KAFKA_CLUSTERS_SCHEMA_REGISTRY: http://schema-registry:8081
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    depends_on:
+      - broker
+    networks:
+      - boot
+
+  schema-registry:
+    container_name: schema-registry
+    image: confluentinc/cp-schema-registry:7.5.0
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    depends_on:
+      - broker
+    networks:
+      - boot
+
+#  shared-schema:
+#    image: shared-schema
+#    ports:
+#      - "8025:8025"
+#    build:
+#      context: ./shared-schema
+#      dockerfile: ./Dockerfile
+#    container_name: shared-schema
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#    networks:
+#      - boot
+
 
 volumes:
   mongo-event:
@@ -269,7 +342,6 @@ volumes:
     driver: local
   postgres-keycloak-eventbooking:
     driver: local
-
 networks:
   boot:
     driver: bridge

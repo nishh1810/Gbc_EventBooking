@@ -6,5 +6,6 @@ public record BookingRequest(
         String roomId,
         String userId,
         Instant startTime,
-        Instant endTime
+        Instant endTime,
+        String useremail
 ) {}
